@@ -6,6 +6,15 @@ import time
 import os
 import sys
 
+Icgoal = 0.001
+Ube = 0.7
+Beta = 250
+Temp25 = 25
+Tempn15 = -15
+Temp50 = 50
+Ucc = 12.0
+Ucegoal = 4.8
+
 def priorytet(): #nietestowane poza Windowsem, os.system() powoduje czarne okno na początku działania skryptu
     try:
         sys.getwindowsversion()
@@ -28,6 +37,28 @@ def append_list_as_row(file_name, list_of_elem):
     with open(file_name, 'a+', newline='') as write_obj:
         csv_writer = writer(write_obj, delimiter=';')
         csv_writer.writerow(list_of_elem)
+
+def temperatura():
+    global Temp25
+    Temp25 = float(input("Wprowadź podstawową temperaturę [°C] (domyślnie 25 °C): "))
+    global Tempn15
+    Tempn15 = float(input("Wprowadź niższą? temperaturę [°C] (domyślnie -15 °C): "))
+    global Temp50
+    Temp50 = float(input("Wprowadź wyższą? temperaturę [°C] (domyślnie 50 °C): "))
+
+def napiecia():
+    global Ucc
+    Ucc = float(input("Wprowadź napięcie zasilające układ Ucc [V] (domyślnie 12.0 V): "))
+    global Ucegoal
+    Ucegoal = float(input("Wprowadź pożądane napięcie Uce [V] (domyślnie 4.8 V): "))
+
+def podstawoweParametry():
+    global Icgoal
+    Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
+    global Ube
+    Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
+    global Beta
+    Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
 
 def tolerance(proces,return_dict,postep,R1start,Szereg,Zakres,Ucc,Ucegoal,Icgoal,Ube,Beta,Ube_n15,Beta_n15,Ube_50,Beta_50):
     return_dict[proces]=[]
@@ -77,7 +108,7 @@ def tolerance(proces,return_dict,postep,R1start,Szereg,Zakres,Ucc,Ucegoal,Icgoal
     
 if __name__ == "__main__": 
     Szereg = [10,11,12,13,15,16,18,20,22,24,27,30,33,36,39,43,47,51,56,62,68,75,82,91]
-    #Zakres = [10, 100, 1000]
+
     Zakres = [0.1, 1 , 10, 100, 1000, 10000, 100000, 1000000]
     #każdy możliwy rezystor to coś z Szereg * Zakres -> od 1 Ohma do 9,1 MOhm
     #żeby uwzględniać rezystory 0 Ohm (brak rezystrów) trzeba by zabezpieczać wszystkie dzielenia
@@ -86,37 +117,48 @@ if __name__ == "__main__":
 
     print("Ten program obliczy wszytkie możliwe konfiguracje R1, R2, Rc, Re")
     print("tranzystora bipolarnego w układzie potencjometrycznym.\n")
+
+    podstawoweParametry()
     
     while(1):
-        
-        Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
-        Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
-        Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
+        #Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
+        #Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
+        #Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
 
         #Ube i Beta dla -15 (n15) i 50 stopni
-        Ube_n15=Ube+(-0.002*-40)
-        Ube_50=Ube+(-0.002*25)
-        Beta_n15=Beta*(1+0.005*-40)
-        Beta_50=Beta*(1+0.005*25)
-
-        Ucc=float(12)
-        Ucegoal=float(4.8)
+        Ube_n15=Ube+(-0.002*(Tempn15-Temp25))
+        Ube_50=Ube+(-0.002*(Temp50-Temp25))
+        Beta_n15=Beta*(1+0.005*(Tempn15-Temp25))
+        Beta_50=Beta*(1+0.005*(Temp50-Temp25))
 
         print("\nSzukanie rezystorów do układu potencjometrycznego dla konfiguracji:")
         print("\tUcc =",Ucc,"V\n")
         print("\tUbe =",Ube,"V [dla 25 stopni]")
         print("\tBeta =",Beta," [dla 25 stopni]\n")
-        print("\tUbe =",Ube_n15,"V [dla -15 stopni]")
-        print("\tBeta =",Beta_n15," [dla -15 stopni]\n")
-        print("\tUbe =",Ube_50,"V [dla 50 stopni]")
-        print("\tBeta =",Beta_50," [dla 50 stopni]\n")
+        print("\tUbe =",round(Ube_n15,2),"V [dla",Tempn15,"stopni]")
+        print("\tBeta =",round(Beta_n15,2)," [dla",Tempn15,"stopni]\n")
+        print("\tUbe =",round(Ube_50,2),"V [dla",Temp50,"stopni]")
+        print("\tBeta =",round(Beta_50,2)," [dla",Temp50,"stopni]\n")
         print("Aby uzyskać wyjściowo (dla wszystkich 3 temperatur):")
         print("\tIc =",round(Icgoal,5),"A (dopuszczalne 5% tolerancji)")
         print("\tUce =",Ucegoal,"V (dopuszczalne 5% tolerancji)")
 
-        decyzja = input("\nCzy chcesz konytnuować? [t/N]: ")
-        if decyzja=="t" or decyzja=="T":
+        print("\n1. Kontynuuj (lub wciśnij t)")
+        print("2. Edytuj Ic, Ube, Beta")
+        print("3. Edytuj napięcie Ucc i Uce (zadane domyślnie)")
+        print("4. Edytuj temperatury (zadane domyślnie)")
+        print("5. Zakończ działanie skryptu (lub wciśnij cokolwiek)")
+        decyzja = str(input("\nWybierz opcje [1-5]: "))
+        if decyzja=="1" or decyzja=="t" or decyzja=="T":
             break
+        elif decyzja=="2":
+            podstawoweParametry()
+        elif decyzja=="3":
+            napiecia()
+        elif decyzja=="4":
+            temperatura()
+        else:
+            sys.exit()
 
     #multiprocesowe sprawy
     manager = multiprocessing.Manager()
@@ -144,7 +186,7 @@ if __name__ == "__main__":
         if pasek==(len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)):
             break
         time.sleep(10) #wyświetlenie postępu co 10 sekund
-    for proc in jobs: #pętla kończy się gdy przejdą wszystkie iteracje (procesy się zakończą), ale dla pewności zamykamy procesy
+    for proc in jobs: #pętla kończy się gdy przejdą wszystkie iteracje (procesy się zakończą)
         proc.join()
         
     czas_procesy = czas();
