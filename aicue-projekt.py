@@ -27,38 +27,51 @@ def priorytet(): #nietestowane poza Windowsem, os.system() powoduje czarne okno 
     else:
         if os.nice(0) <= 0:
             os.nice(5)
-
-def czas():
-    now = datetime.now()
-    current_time = now.strftime("%H:%M:%S")
-    return current_time
-
+            
 def append_list_as_row(file_name, list_of_elem):
     with open(file_name, 'a+', newline='') as write_obj:
         csv_writer = writer(write_obj, delimiter=';')
         csv_writer.writerow(list_of_elem)
 
 def temperatura():
-    global Temp25
-    Temp25 = float(input("Wprowadź podstawową temperaturę [°C] (domyślnie 25 °C): "))
-    global Tempn15
-    Tempn15 = float(input("Wprowadź niższą? temperaturę [°C] (domyślnie -15 °C): "))
-    global Temp50
-    Temp50 = float(input("Wprowadź wyższą? temperaturę [°C] (domyślnie 50 °C): "))
-
+    while(1):
+        try:
+            global Temp25
+            Temp25 = float(input("Wprowadź podstawową temperaturę [°C] (domyślnie 25 °C): "))
+            global Tempn15
+            Tempn15 = float(input("Wprowadź niższą? temperaturę [°C] (domyślnie -15 °C): "))
+            global Temp50
+            Temp50 = float(input("Wprowadź wyższą? temperaturę [°C] (domyślnie 50 °C): "))
+        except:
+            print("Błąd wprowadzenia")
+        else:
+            break
 def napiecia():
-    global Ucc
-    Ucc = float(input("Wprowadź napięcie zasilające układ Ucc [V] (domyślnie 12.0 V): "))
-    global Ucegoal
-    Ucegoal = float(input("Wprowadź pożądane napięcie Uce [V] (domyślnie 4.8 V): "))
+    while(1):
+        try:
+            global Ucc
+            Ucc = float(input("Wprowadź napięcie zasilające układ Ucc [V] (domyślnie 12.0 V): "))
+            global Ucegoal
+            Ucegoal = float(input("Wprowadź pożądane napięcie Uce [V] (domyślnie 4.8 V): "))
+        except:
+            print("Błąd wprowadzenia")
+        else:
+            break
 
 def podstawoweParametry():
-    global Icgoal
-    Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
-    global Ube
-    Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
-    global Beta
-    Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
+    while(1):
+        try:
+            global Icgoal
+            Icgoal = float(input("Wprowadź pożądany prąd kolektora [mA] (założony): "))*0.001
+            global Ube
+            Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
+            global Beta
+            Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
+        except:
+            print("Błąd wprowadzenia")
+        else:
+            break
+    
 
 def tolerance(proces,return_dict,postep,R1start,Szereg,Zakres,Ucc,Ucegoal,Icgoal,Ube,Beta,Ube_n15,Beta_n15,Ube_50,Beta_50):
     return_dict[proces]=[]
@@ -115,13 +128,13 @@ if __name__ == "__main__":
 
     priorytet()
 
-    print("Ten program obliczy wszytkie możliwe konfiguracje R1, R2, Rc, Re")
+    print("Ten program obliczy wszystkie możliwe konfiguracje R1, R2, Rc, Re")
     print("tranzystora bipolarnego w układzie potencjometrycznym.\n")
 
     podstawoweParametry()
     
     while(1):
-        #Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
+        #Icgoal = float(input("Wprowadź pożądany prąd kolektora [mA] (założony): "))*0.001
         #Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
         #Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
 
@@ -149,17 +162,20 @@ if __name__ == "__main__":
         print("4. Edytuj temperatury (zadane domyślnie)")
         print("5. Zakończ działanie skryptu (lub wciśnij cokolwiek)")
         decyzja = str(input("\nWybierz opcje [1-5]: "))
-        if decyzja=="1" or decyzja=="t" or decyzja=="T":
-            break
-        elif decyzja=="2":
-            podstawoweParametry()
-        elif decyzja=="3":
-            napiecia()
-        elif decyzja=="4":
-            temperatura()
-        else:
-            sys.exit()
-
+        try:
+            if decyzja=="1" or decyzja=="t" or decyzja=="T":
+                break
+            elif decyzja=="2":
+                podstawoweParametry()
+            elif decyzja=="3":
+                napiecia()
+            elif decyzja=="4":
+                temperatura()
+            else:
+                sys.exit()
+        except:
+            print("Błąd wprowadzenia")
+            
     #multiprocesowe sprawy
     manager = multiprocessing.Manager()
     return_dict = manager.dict()
@@ -189,26 +205,30 @@ if __name__ == "__main__":
     for proc in jobs: #pętla kończy się gdy przejdą wszystkie iteracje (procesy się zakończą)
         proc.join()
         
-    czas_procesy = czas();
+    czas_procesy = datetime.now();
     print("[Procesy skończyły (",czas_procesy,")]")
     nazwa = "Projekt-kombinacje-rezystorów_"+str(Icgoal*1000)+"mA_"+str(Ube)+"V_"+str(math.floor(Beta))+".csv" #nazwa pliku, .csv
     print("\nZaczynam zapis do formatu .csv (to też chwilę potrwa)")
-    czyscplik = open(nazwa, 'w', newline='') #wyczyszczenie, jeżeli wcześniej plik był już utworzony
-    czyscplik.close();
-    append_list_as_row(nazwa, ["R1","R2","Rc","Re","Ic(+25)[A]","Ic(-15)[A]","Ic(+50)[A]","Uce(+25)[V]","Uce(-15)[V]","Uce(+50)[V]","Tol. Ic(+25)[%]","Tol.Ic(-15)[%]","Tol.Ic(+50)[%]","Tol.Uce(+25)[%]","Tol.Uce(-15)[%]","Tol.Uce(+50)[%]"]) #header
-    licznik = 0
-    for i in return_dict:
-        for j in return_dict[i]:
-            for indeks,element in enumerate(j): 
-                j[indeks] = str(element).replace(".",",") #formatowanie do bezpośredniego wczytania do EXCELA
-            append_list_as_row(nazwa, j) #dopisywanie danych z każdego procesu linijka po linijce
-            licznik = licznik + 1 #licznik do sumowania poprawnych konfiguracji
-    print("Plik został zapisany jako:",nazwa)
-    print("(zapisany w scieżce odplenia skryptu)")
-    czas_koniec = datetime.now();
-    print("\nCzas startu:",czas_start.strftime("%H:%M:%S"))
-    print("Czas końca :",czas_koniec.strftime("%H:%M:%S"))
-    print("Różnica czasu :",(czas_koniec-czas_start))
-    print("\nZnaleziono",licznik,"rozwiązań spośród",len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres),"kombinacji rezystorów.")
+    try:
+        czyscplik = open(nazwa, 'w', newline='') #wyczyszczenie, jeżeli wcześniej plik był już utworzony
+        czyscplik.close();
+        append_list_as_row(nazwa, ["R1","R2","Rc","Re","Ic(+25)[A]","Ic(-15)[A]","Ic(+50)[A]","Uce(+25)[V]","Uce(-15)[V]","Uce(+50)[V]","Tol. Ic(+25)[%]","Tol.Ic(-15)[%]","Tol.Ic(+50)[%]","Tol.Uce(+25)[%]","Tol.Uce(-15)[%]","Tol.Uce(+50)[%]"]) #header
+        licznik = 0
+        for i in return_dict:
+            for j in return_dict[i]:
+                for indeks,element in enumerate(j): 
+                    j[indeks] = str(element).replace(".",",") #formatowanie do bezpośredniego wczytania do EXCELA
+                append_list_as_row(nazwa, j) #dopisywanie danych z każdego procesu linijka po linijce
+                licznik = licznik + 1 #licznik do sumowania poprawnych konfiguracji
+    except:
+        print("Wystąpił błąd podczas konwersji i zapisu pliku!")
+    else:
+        print("Plik został zapisany jako:",nazwa)
+        print("(zapisany w scieżce odplenia skryptu)")
+        czas_koniec = datetime.now();
+        print("\nCzas startu:",czas_start.strftime("%H:%M:%S"))
+        print("Czas końca :",czas_koniec.strftime("%H:%M:%S"))
+        print("Różnica czasu :",(czas_koniec-czas_start))
+        print("\nZnaleziono",licznik,"rozwiązań spośród",len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres),"kombinacji rezystorów.")
     input("\nWciśnij jakikolwiek przycisk by zakończyć...")
 
