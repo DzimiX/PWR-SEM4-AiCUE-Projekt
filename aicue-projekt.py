@@ -1,12 +1,23 @@
-# TODO:
-# 1. zmiana priorytetu procesów na mniejsze
-#
-
 import multiprocessing 
 from csv import writer
 from datetime import datetime
 import math
 import time
+import os
+import sys
+
+def priorytet(): #nietestowane poza Windowsem, os.system() powoduje czarne okno na początku działania skryptu
+    try:
+        sys.getwindowsversion()
+    except AttributeError:
+        isWindows = False
+    else:
+        isWindows = True
+    if isWindows:
+        os.system("wmic process where processid=\""+str(os.getpid())+"\" CALL setpriority 64")
+    else:
+        if os.nice(0) <= 0:
+            os.nice(5)
 
 def czas():
     now = datetime.now()
@@ -70,11 +81,17 @@ if __name__ == "__main__":
     Zakres = [0.1, 1 , 10, 100, 1000, 10000, 100000, 1000000]
     #każdy możliwy rezystor to coś z Szereg * Zakres -> od 1 Ohma do 9,1 MOhm
     #żeby uwzględniać rezystory 0 Ohm (brak rezystrów) trzeba by zabezpieczać wszystkie dzielenia
+
+    priorytet()
+
+    print("Ten program obliczy wszytkie możliwe konfiguracje R1, R2, Rc, Re")
+    print("tranzystora bipolarnego w układzie potencjometrycznym.\n")
     
     while(1):
-        Icgoal = float(input("Wprowadź porządany prąd kolektora [mA]: "))*0.001
-        Ube = float(input("Wprowadź napięcie Ube [V]: "))
-        Beta = float(input("Wprowadź wzmocnienie Beta [1]: "))
+        
+        Icgoal = float(input("Wprowadź porządany prąd kolektora [mA] (założony): "))*0.001
+        Ube = float(input("Wprowadź napięcie Ube [V] (karta katalogowa): "))
+        Beta = float(input("Wprowadź wzmocnienie Beta [1] (karta katalogowa): "))
 
         #Ube i Beta dla -15 (n15) i 50 stopni
         Ube_n15=Ube+(-0.002*-40)
@@ -86,14 +103,18 @@ if __name__ == "__main__":
         Ucegoal=float(4.8)
 
         print("\nSzukanie rezystorów do układu potencjometrycznego dla konfiguracji:")
-        print("\tUcc =",Ucc,"V")
+        print("\tUcc =",Ucc,"V\n")
         print("\tUbe =",Ube,"V [dla 25 stopni]")
-        print("\tBeta =",Beta," [dla 25 stopni]")
-        print("Aby uzyskać wyjściowo:")
+        print("\tBeta =",Beta," [dla 25 stopni]\n")
+        print("\tUbe =",Ube_n15,"V [dla -15 stopni]")
+        print("\tBeta =",Beta_n15," [dla -15 stopni]\n")
+        print("\tUbe =",Ube_50,"V [dla 50 stopni]")
+        print("\tBeta =",Beta_50," [dla 50 stopni]\n")
+        print("Aby uzyskać wyjściowo (dla wszystkich 3 temperatur):")
         print("\tIc =",round(Icgoal,5),"A (dopuszczalne 5% tolerancji)")
         print("\tUce =",Ucegoal,"V (dopuszczalne 5% tolerancji)")
 
-        decyzja = input("Czy chcesz konytnuować? [t/N]: ")
+        decyzja = input("\nCzy chcesz konytnuować? [t/N]: ")
         if decyzja=="t" or decyzja=="T":
             break
 
@@ -102,8 +123,8 @@ if __name__ == "__main__":
     return_dict = manager.dict()
     postep = manager.dict()
     jobs = []
-    czas_start = czas();
-    print("\nCzas startu: ",czas_start)
+    czas_start = datetime.now();
+    print("\nCzas startu: ",czas_start.strftime("%H:%M:%S"))
     print("Uruchamiam procesy liczące.")
 
     #tyle procesów ile zmiennych w Szereg, każdy proces bierze 1 wartość z szeregu dla R1 i przemnaża razy podstawę, podstawiając R2 Rc i Re.
@@ -114,7 +135,7 @@ if __name__ == "__main__":
 
     #wiem ile jest zmiennych i podstaw, wiem ile razy wykonają się pętle - z drugą iteracją pętli zwiększam liczniki w każdym procesie, tutaj na bierząco odczytuje
     print("\nCzekam aż każdy z procesów skończy obliczenia.")
-    print("Aktualizacja postępu co 10 sekund, to chwilę potrwa:")
+    print("Aktualizacja postępu co 10 sekund, to chwilę potrwa:\n")
     while(1):
         pasek=0
         for i in postep.values():
@@ -142,8 +163,10 @@ if __name__ == "__main__":
             licznik = licznik + 1 #licznik do sumowania poprawnych konfiguracji
     print("Plik został zapisany jako:",nazwa)
     print("(zapisany w scieżce odplenia skryptu)")
-    czas_koniec = czas()
-    print("\nCzas startu:",czas_start)
-    print("Czas końca :",czas_koniec)
+    czas_koniec = datetime.now();
+    print("\nCzas startu:",czas_start.strftime("%H:%M:%S"))
+    print("Czas końca :",czas_koniec.strftime("%H:%M:%S"))
+    print("Różnica czasu :",(czas_koniec-czas_start))
     print("\nZnaleziono",licznik,"rozwiązań spośród",len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres)*len(Szereg)*len(Zakres),"kombinacji rezystorów.")
     input("\nWciśnij jakikolwiek przycisk by zakończyć...")
+
